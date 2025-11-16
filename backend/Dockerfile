@@ -39,15 +39,10 @@ COPY app/ ./app/
 
 # Copy data files
 # Copy CSV file (source of truth - always in git)
+# The app will generate interventions.json from CSV at startup if missing
 COPY data/raw/ ./data/raw/
-# Copy processed directory - copy everything that exists
-# If interventions.json doesn't exist, we'll handle it in a RUN command
-COPY data/processed/ ./data/processed/
-# Ensure interventions.json exists (create empty if missing - app will generate from CSV)
-RUN if [ ! -f ./data/processed/interventions.json ]; then \
-        echo '[]' > ./data/processed/interventions.json && \
-        echo "Created empty JSON file - will be generated from CSV at startup"; \
-    fi
+# Don't copy processed JSON - let app generate it from CSV at startup
+# This avoids Railway build issues with missing files
 # chroma_db directory already created above with RUN mkdir -p
 # Vector store will be empty but app handles this - it falls back to structured search
 

@@ -103,9 +103,21 @@ async def startup_event():
         logger.info("Initializing database...")
         data_path = settings.processed_data_dir / "interventions.json"
         if not data_path.exists():
-            logger.error(f"❌ Data file not found: {data_path}")
-            logger.error("Please run setup script first: python backend/scripts/setup_database.py")
-            raise FileNotFoundError(f"Database file not found: {data_path}")
+            logger.warning(f"⚠️ Data file not found: {data_path}")
+            logger.info("Attempting to generate from CSV...")
+            # Try to generate from CSV
+            from .utils.data_processor import DataProcessor
+            csv_path = settings.data_dir / "raw" / "GPT_Input_DB(Sheet1).csv"
+            if csv_path.exists():
+                logger.info(f"Found CSV file: {csv_path}")
+                processor = DataProcessor(csv_path)
+                df = processor.process()
+                saved_files = processor.save_processed_data(settings.processed_data_dir)
+                logger.info(f"✅ Generated interventions.json from CSV with {len(df)} interventions")
+            else:
+                logger.error(f"❌ CSV file not found: {csv_path}")
+                logger.error("Please run setup script first: python backend/scripts/setup_database.py")
+                raise FileNotFoundError(f"Database file not found: {data_path} and CSV not available: {csv_path}")
         database_service = DatabaseService(data_path=data_path)
         count = len(database_service.df) if database_service.df is not None else 0
         logger.info(f"Database loaded with {count} interventions")
