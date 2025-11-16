@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     rag_top_k: int = 10
 
     # Server
-    port: int = 8000
+    port: int = int(os.getenv("PORT", "8000"))  # Railway provides PORT env var
     host: str = "0.0.0.0"
 
     model_config = SettingsConfigDict(

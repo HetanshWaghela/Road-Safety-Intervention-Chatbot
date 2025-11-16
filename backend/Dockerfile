@@ -49,9 +49,10 @@ COPY backend/data/raw/GPT_Input_DB*.csv ./data/raw/
 # Expose port
 EXPOSE 8000
 
-# Health check
+# Health check (uses PORT env var, defaults to 8000)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health')"
+    CMD sh -c 'python -c "import requests, os; port=os.getenv(\"PORT\", \"8000\"); requests.get(f\"http://localhost:{port}/health\")"'
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the application (Railway will override with startCommand from railway.json)
+# Default to 8000 if PORT not set, but Railway provides PORT env var
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
