@@ -38,10 +38,16 @@ RUN mkdir -p ./data/raw ./data/processed ./data/chroma_db ./scripts
 COPY app/ ./app/
 
 # Copy data files
-# Copy CSV file (always in git) and processed JSON if available
-COPY data/raw/GPT_Input_DB*.csv ./data/raw/
-# Copy processed JSON if it exists (it should be in git)
-COPY data/processed/interventions.json ./data/processed/interventions.json
+# Copy CSV file (source of truth - always in git)
+COPY data/raw/ ./data/raw/
+# Copy processed directory - copy everything that exists
+# If interventions.json doesn't exist, we'll handle it in a RUN command
+COPY data/processed/ ./data/processed/
+# Ensure interventions.json exists (create empty if missing - app will generate from CSV)
+RUN if [ ! -f ./data/processed/interventions.json ]; then \
+        echo '[]' > ./data/processed/interventions.json && \
+        echo "Created empty JSON file - will be generated from CSV at startup"; \
+    fi
 # chroma_db directory already created above with RUN mkdir -p
 # Vector store will be empty but app handles this - it falls back to structured search
 
