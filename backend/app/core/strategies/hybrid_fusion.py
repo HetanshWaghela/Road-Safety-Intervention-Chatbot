@@ -28,8 +28,26 @@ class HybridFusionStrategy(BaseStrategy):
         """Search using hybrid fusion of RAG and structured search."""
         try:
             # Run both strategies in parallel
-            rag_results = await self.rag_strategy.search(query, filters, max_results=max_results * 2)
+            rag_results = []
+            try:
+                rag_results = await self.rag_strategy.search(query, filters, max_results=max_results * 2)
+            except Exception as e:
+                logger.warning(f"RAG search failed, continuing with structured only: {e}")
+                
             structured_results = await self.structured_strategy.search(query, filters, max_results=max_results * 2)
+
+            # If both are empty, return empty
+            if not rag_results and not structured_results:
+                logger.warning("Both RAG and structured search returned no results")
+                return []
+
+            # If only one has results, return that
+            if not rag_results:
+                logger.info("RAG returned no results, using structured results only")
+                return structured_results[:max_results]
+            if not structured_results:
+                logger.info("Structured returned no results, using RAG results only")
+                return rag_results[:max_results]
 
             # Combine results using Reciprocal Rank Fusion
             fused_results = self._reciprocal_rank_fusion(rag_results, structured_results)
@@ -42,7 +60,11 @@ class HybridFusionStrategy(BaseStrategy):
 
         except Exception as e:
             logger.error(f"Error in hybrid search: {e}")
-            return []
+            # Fallback to structured search
+            try:
+                return await self.structured_strategy.search(query, filters, max_results)
+            except:
+                return []
 
     def _reciprocal_rank_fusion(
         self, rag_results: List[InterventionResult], structured_results: List[InterventionResult]

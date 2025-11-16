@@ -1,10 +1,11 @@
 """Main FastAPI application."""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import logging
 from pathlib import Path
 
 from .config import settings
+from .utils.logger import setup_logging, get_logger
+from .api.middleware.logging import RequestLoggingMiddleware
 from .services import (
     GeminiService,
     VectorStoreService,
@@ -21,13 +22,9 @@ from .core.orchestrator import QueryOrchestrator
 from .core.strategies import RAGSearchStrategy, StructuredQueryStrategy, HybridFusionStrategy
 from .api.routes import search, interventions, health, wow_features, advanced_features
 
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, settings.log_level.upper()),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-
-logger = logging.getLogger(__name__)
+# Setup structured JSON logging
+setup_logging()
+logger = get_logger(__name__)
 
 # Create FastAPI app
 app = FastAPI(
@@ -37,6 +34,9 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+# Add request logging middleware (before CORS)
+app.add_middleware(RequestLoggingMiddleware)
 
 # Add CORS middleware
 app.add_middleware(
@@ -66,19 +66,17 @@ analytics_service: AnalyticsService = None
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup."""
-    global (
-        gemini_service,
-        vector_store_service,
-        database_service,
-        cache_service,
-        orchestrator,
-        visual_generator,
-        pdf_generator,
-        image_analyzer,
-        scenario_planner,
-        comparison_service,
-        analytics_service,
-    )
+    global gemini_service
+    global vector_store_service
+    global database_service
+    global cache_service
+    global orchestrator
+    global visual_generator
+    global pdf_generator
+    global image_analyzer
+    global scenario_planner
+    global comparison_service
+    global analytics_service
 
     logger.info("🚀 Starting Road Safety Intervention API with WOW Features...")
 
@@ -91,13 +89,29 @@ async def startup_event():
         vector_store_service = VectorStoreService(
             persist_directory=str(settings.chroma_dir), collection_name=settings.collection_name
         )
+        # Get or create collection
+        try:
+            collection = vector_store_service.get_collection()
+            count = vector_store_service.count()
+            logger.info(f"Vector store loaded with {count} documents")
+            if count == 0:
+                logger.warning("⚠️ Vector store is empty! Please run: python backend/scripts/setup_database.py")
+        except Exception as e:
+            logger.error(f"Error loading vector store: {e}")
+            logger.warning("⚠️ Vector store may not be initialized. Please run: python backend/scripts/setup_database.py")
 
         logger.info("Initializing database...")
         data_path = settings.processed_data_dir / "interventions.json"
         if not data_path.exists():
-            logger.warning(f"Data file not found: {data_path}")
-            logger.warning("Please run setup script first: python backend/scripts/setup_database.py")
+            logger.error(f"❌ Data file not found: {data_path}")
+            logger.error("Please run setup script first: python backend/scripts/setup_database.py")
+            raise FileNotFoundError(f"Database file not found: {data_path}")
         database_service = DatabaseService(data_path=data_path)
+        count = len(database_service.df) if database_service.df is not None else 0
+        logger.info(f"Database loaded with {count} interventions")
+        if count == 0:
+            logger.error("❌ Database is empty! Please run: python backend/scripts/setup_database.py")
+            raise ValueError("Database is empty")
 
         logger.info("Initializing cache...")
         cache_service = CacheService(maxsize=1000, ttl=settings.cache_ttl)

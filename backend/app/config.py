@@ -1,5 +1,5 @@
 """Application configuration."""
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
 import os
 from pathlib import Path
@@ -31,10 +31,10 @@ class Settings(BaseSettings):
     cache_ttl: int = 3600  # 1 hour
 
     # Database
-    database_url: str = "sqlite:///./backend/data/processed/interventions.db"
+    database_url: str = "sqlite:///./data/processed/interventions.db"
 
     # Vector Store
-    chroma_persist_dir: str = "./backend/data/chroma_db"
+    chroma_persist_dir: str = "./data/chroma_db"
     collection_name: str = "road_safety_interventions"
 
     # Search Settings
@@ -46,9 +46,11 @@ class Settings(BaseSettings):
     port: int = 8000
     host: str = "0.0.0.0"
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    model_config = SettingsConfigDict(
+        env_file=str(Path(__file__).parent.parent.parent / ".env"),
+        case_sensitive=False,
+        extra="ignore",  # Ignore extra fields in .env file
+    )
 
     @property
     def api_keys_list(self) -> List[str]:
@@ -63,6 +65,10 @@ class Settings(BaseSettings):
     @property
     def data_dir(self) -> Path:
         """Get data directory."""
+        # In Docker/deployment, data is in ./data relative to app
+        # In local dev, it's in project_root/backend/data
+        if Path("./data").exists():
+            return Path("./data")
         return self.project_root / "backend" / "data"
 
     @property
@@ -78,6 +84,7 @@ class Settings(BaseSettings):
     @property
     def chroma_dir(self) -> Path:
         """Get ChromaDB directory."""
+        # Use data_dir which already handles Docker vs local paths
         return self.data_dir / "chroma_db"
 
 

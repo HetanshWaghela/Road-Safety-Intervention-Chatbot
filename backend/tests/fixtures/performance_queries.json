@@ -1,0 +1,30 @@
+{
+  "simple_queries": [
+    "stop sign",
+    "road marking",
+    "speed breaker"
+  ],
+  "medium_queries": [
+    "faded stop sign on highway",
+    "missing pedestrian crossing markings",
+    "damaged speed breaker on urban road"
+  ],
+  "complex_queries": [
+    "faded red octagonal stop sign with white border on national highway at 65 kmph speed limit near intersection with poor visibility due to trees",
+    "missing zebra crossing markings at pedestrian crossing on arterial road with high traffic volume during peak hours",
+    "damaged speed breaker on urban residential road causing vehicle damage and safety concerns for local residents"
+  ],
+  "repeated_queries": [
+    "faded stop sign",
+    "faded stop sign",
+    "faded stop sign"
+  ],
+  "performance_benchmarks": {
+    "simple_query_max_time_ms": 2000,
+    "medium_query_max_time_ms": 3000,
+    "complex_query_max_time_ms": 5000,
+    "cache_response_max_time_ms": 100,
+    "min_cache_hit_rate": 0.5
+  }
+}
+

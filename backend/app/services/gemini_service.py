@@ -1,13 +1,13 @@
 """Google Gemini API service."""
 import google.generativeai as genai
 from typing import List, Dict, Any, Optional
-import logging
 import json
 from tenacity import retry, stop_after_attempt, wait_exponential
 from ..config import settings
 from ..models.schemas import ExtractedEntities
+from ..utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class GeminiService:
@@ -24,7 +24,7 @@ class GeminiService:
         self.total_input_tokens = 0
         self.total_output_tokens = 0
 
-        logger.info("Gemini service initialized")
+        logger.log_operation("service_init", "Gemini service initialized")
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     async def generate_embeddings(self, texts: List[str]) -> List[List[float]]:
@@ -48,13 +48,13 @@ class GeminiService:
 
                 embeddings.extend(batch_embeddings)
 
-                logger.debug(f"Generated {len(batch_embeddings)} embeddings")
+                logger.debug("Generated embeddings batch", operation="embedding_generation", batch_size=len(batch_embeddings))
 
-            logger.info(f"Generated {len(embeddings)} total embeddings")
+            logger.log_operation("embedding_generation", f"Generated {len(embeddings)} total embeddings", total_embeddings=len(embeddings))
             return embeddings
 
         except Exception as e:
-            logger.error(f"Error generating embeddings: {e}")
+            logger.error("Error generating embeddings", operation="embedding_error", error=str(e), error_type=type(e).__name__)
             raise
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
@@ -70,7 +70,7 @@ class GeminiService:
             return result["embedding"]
 
         except Exception as e:
-            logger.error(f"Error embedding query: {e}")
+            logger.error("Error embedding query", operation="query_embedding_error", error=str(e), error_type=type(e).__name__)
             raise
 
     async def extract_entities(self, query: str) -> ExtractedEntities:
@@ -114,12 +114,11 @@ Return only the JSON object, no additional text."""
             return ExtractedEntities(**data)
 
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON from Gemini response: {text}")
-            logger.error(f"JSON error: {e}")
+            logger.error("Failed to parse JSON from Gemini response", operation="entity_extraction_error", response_text=text[:200], error=str(e))
             # Return empty entities on parse failure
             return ExtractedEntities()
         except Exception as e:
-            logger.error(f"Error extracting entities: {e}")
+            logger.error("Error extracting entities", operation="entity_extraction_error", error=str(e), error_type=type(e).__name__)
             return ExtractedEntities()
 
     async def synthesize_recommendation(
@@ -170,11 +169,11 @@ Be specific, cite the IRC standards, and ensure all recommendations are traceabl
                 self.total_input_tokens += response.usage_metadata.prompt_token_count
                 self.total_output_tokens += response.usage_metadata.candidates_token_count
 
-            logger.info("Generated synthesis with Gemini Pro")
+            logger.log_operation("synthesis_generation", "Generated synthesis with Gemini Pro", intervention_count=len(interventions))
             return synthesis
 
         except Exception as e:
-            logger.error(f"Error generating synthesis: {e}")
+            logger.error("Error generating synthesis", operation="synthesis_error", error=str(e), error_type=type(e).__name__)
             return "Error generating detailed recommendation. Please try again."
 
     async def answer_followup(self, question: str, context: str) -> str:
@@ -200,7 +199,7 @@ Provide a clear, concise answer with specific details from the context."""
             return answer
 
         except Exception as e:
-            logger.error(f"Error answering follow-up: {e}")
+            logger.error("Error answering follow-up", operation="followup_error", error=str(e), error_type=type(e).__name__)
             return "I'm unable to answer that question at the moment."
 
     def get_token_usage(self) -> Dict[str, int]:

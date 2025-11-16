@@ -24,6 +24,7 @@ numpy==1.26.3
 python-dotenv==1.0.0
 httpx==0.26.0
 tenacity==8.2.3
+python-json-logger==2.0.7
 
 # Caching
 cachetools==5.3.2
@@ -41,7 +42,7 @@ ruff==0.1.14
 # 🌟 WOW FEATURES 🌟
 
 # Visual Generation
-Pillow==10.2.0
+Pillow>=10.3.0,<11.0.0
 matplotlib==3.8.2
 seaborn==0.13.1
 

@@ -1,0 +1,113 @@
+{
+  "relevance_test_cases": [
+    {
+      "query": "Faded STOP sign on 65 kmph highway",
+      "expected_intervention_ids": [],
+      "expected_categories": ["Road Sign"],
+      "expected_problem_types": ["Faded"],
+      "min_confidence_threshold": 0.7,
+      "speed_range": {
+        "min": 45,
+        "max": 85
+      },
+      "description": "Should match STOP sign interventions with faded problem type and speed range filter"
+    },
+    {
+      "query": "Missing road markings at pedestrian crossing",
+      "expected_intervention_ids": [],
+      "expected_categories": ["Road Marking"],
+      "expected_problem_types": ["Missing"],
+      "min_confidence_threshold": 0.7,
+      "description": "Should match pedestrian crossing marking interventions with missing problem type"
+    },
+    {
+      "query": "Damaged speed breaker on urban road",
+      "expected_intervention_ids": [],
+      "expected_categories": ["Traffic Calming Measures"],
+      "expected_problem_types": ["Damaged"],
+      "min_confidence_threshold": 0.7,
+      "description": "Should match speed breaker interventions with damaged problem type"
+    },
+    {
+      "query": "Obstruction blocking road sign visibility",
+      "expected_intervention_ids": [],
+      "expected_categories": ["Road Sign"],
+      "expected_problem_types": [],
+      "min_confidence_threshold": 0.6,
+      "description": "Should match road sign interventions related to visibility issues"
+    }
+  ],
+  "comprehensiveness_test_cases": [
+    {
+      "query": "road safety signs",
+      "min_result_count": 3,
+      "required_fields": [
+        "id",
+        "title",
+        "confidence",
+        "category",
+        "problem",
+        "specifications",
+        "irc_reference",
+        "explanation",
+        "cost_estimate"
+      ],
+      "expected_irc_references": true,
+      "min_explanation_length": 50,
+      "description": "Should return multiple road sign interventions with complete details"
+    },
+    {
+      "query": "pedestrian crossing markings",
+      "min_result_count": 2,
+      "required_fields": [
+        "id",
+        "title",
+        "confidence",
+        "specifications",
+        "irc_reference",
+        "explanation"
+      ],
+      "expected_irc_references": true,
+      "min_explanation_length": 50,
+      "description": "Should return multiple pedestrian crossing marking interventions"
+    },
+    {
+      "query": "speed control measures",
+      "min_result_count": 2,
+      "required_fields": [
+        "id",
+        "title",
+        "confidence",
+        "category",
+        "specifications",
+        "irc_reference"
+      ],
+      "expected_irc_references": true,
+      "description": "Should return various speed control interventions"
+    }
+  ],
+  "edge_case_queries": [
+    {
+      "query": "sign",
+      "description": "Very broad query - should still return relevant results",
+      "min_result_count": 1
+    },
+    {
+      "query": "faded red octagonal stop sign with white border on national highway at 65 kmph speed limit near intersection",
+      "description": "Very specific query - should match precisely",
+      "min_result_count": 1,
+      "min_confidence_threshold": 0.8
+    },
+    {
+      "query": "stp sgn fded",
+      "description": "Query with typos - should still work with fuzzy matching",
+      "min_result_count": 1
+    },
+    {
+      "query": "",
+      "description": "Empty query - should be handled gracefully",
+      "should_fail": true
+    }
+  ]
+}
+

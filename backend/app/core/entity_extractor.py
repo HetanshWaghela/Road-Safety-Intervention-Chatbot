@@ -1,9 +1,9 @@
 """Entity extraction from user queries."""
 from ..services.gemini_service import GeminiService
 from ..models.schemas import ExtractedEntities
-import logging
+from ..utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class EntityExtractor:

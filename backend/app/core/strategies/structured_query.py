@@ -24,19 +24,31 @@ class StructuredQueryStrategy(BaseStrategy):
     ) -> List[InterventionResult]:
         """Search using structured filters and text matching."""
         try:
-            # If filters are provided, use them
-            if filters:
-                results = self.database.search_by_filters(
+            # Always try text search first (works without filters)
+            results = self.database.text_search(query, limit=max_results * 2)
+            
+            # If filters are provided AND we have results, optionally refine with filters
+            # But don't use filters if they would eliminate all results
+            if filters and (filters.get("category") or filters.get("problem") or filters.get("speed_min") or filters.get("speed_max") or filters.get("irc_code")):
+                # Try filtered search
+                filtered_results = self.database.search_by_filters(
                     category=filters.get("category"),
                     problem=filters.get("problem"),
                     speed_min=filters.get("speed_min"),
                     speed_max=filters.get("speed_max"),
                     irc_code=filters.get("irc_code"),
-                    limit=max_results,
+                    limit=max_results * 2,
                 )
-            else:
-                # Otherwise, do text search
-                results = self.database.text_search(query, limit=max_results)
+                # Use filtered results if we got some, otherwise keep text search results
+                if filtered_results:
+                    results = filtered_results
+                else:
+                    logger.info(f"Filters returned no results, using text search results instead")
+                
+            # If still no results, return top interventions as fallback
+            if not results:
+                logger.warning(f"No results found for query: {query}. Returning top interventions.")
+                results = self.database.get_all(limit=max_results)
 
             # Convert to InterventionResult objects
             intervention_results = []
