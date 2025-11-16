@@ -392,23 +392,45 @@ def main():
                 }
                 st.session_state.retry_count = 0
 
+                # Validate response structure
+                if not isinstance(response, dict):
+                    raise ValueError(f"Invalid response format: expected dict, got {type(response)}")
+                
+                if "metadata" not in response:
+                    # Log the actual response for debugging
+                    st.error(f"❌ Invalid API response: missing 'metadata' field")
+                    with st.expander("🔍 Debug: API Response"):
+                        st.json(response)
+                    raise KeyError("Response missing 'metadata' field")
+                
+                if "results" not in response:
+                    st.error(f"❌ Invalid API response: missing 'results' field")
+                    with st.expander("🔍 Debug: API Response"):
+                        st.json(response)
+                    raise KeyError("Response missing 'results' field")
+
                 # Display results
+                metadata = response.get("metadata", {})
+                total_results = metadata.get("total_results", len(response.get("results", [])))
+                query_time = metadata.get("query_time_ms", 0)
+                
                 st.success(
-                    f"✅ Found {response['metadata']['total_results']} recommended intervention(s) in {response['metadata']['query_time_ms']}ms"
+                    f"✅ Found {total_results} recommended intervention(s) in {query_time}ms"
                 )
 
                 # Results
-                if response["results"]:
+                results = response.get("results", [])
+                if results:
                     st.header("📊 Recommended Road Safety Intervention(s)")
                     
                     # Show top recommendation prominently
-                    if len(response["results"]) > 0:
-                        display_result(response["results"][0], 1, is_top_recommendation=True)
+                    if len(results) > 0:
+                        display_result(results[0], 1, is_top_recommendation=True)
                     
                     # Show other recommendations
-                    if len(response["results"]) > 1:
+                    if len(results) > 1:
                         st.subheader("Additional Intervention Options")
-                        for idx, result in enumerate(response["results"][1:], 2):
+                        for idx, result in enumerate(results[1:], 2):
                             display_result(result, idx, is_top_recommendation=False)
                     
                     # Export functionality
@@ -448,8 +470,9 @@ def main():
                     st.markdown('</div>', unsafe_allow_html=True)
 
                 # Metadata (collapsible)
-                with st.expander("ℹ️ Search Metadata"):
-                    st.json(response["metadata"])
+                if "metadata" in response:
+                    with st.expander("ℹ️ Search Metadata"):
+                        st.json(response["metadata"])
 
             except NetworkError as e:
                 progress_bar.empty()
