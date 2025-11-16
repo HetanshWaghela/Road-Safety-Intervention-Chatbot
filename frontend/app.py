@@ -251,25 +251,6 @@ def main():
     with st.sidebar:
         st.header("⚙️ Settings")
 
-        # API Configuration
-        with st.expander("🔑 API Configuration", expanded=False):
-            api_url = st.text_input("API URL", value=st.session_state.api_url)
-            api_key = st.text_input("API Key", value=st.session_state.api_key, type="password")
-
-            if st.button("Test Connection"):
-                try:
-                    client = APIClient(base_url=api_url, api_key=api_key)
-                    health = client.health_check()
-                    if health["status"] == "healthy":
-                        st.success("✅ Connection successful!")
-                        # Save to session state
-                        st.session_state.api_url = api_url
-                        st.session_state.api_key = api_key
-                    else:
-                        st.warning(f"⚠️ API status: {health['status']}")
-                except Exception as e:
-                    st.error(f"❌ Connection failed: {e}")
-
         # Filters
         st.header("🔍 Filters")
 
