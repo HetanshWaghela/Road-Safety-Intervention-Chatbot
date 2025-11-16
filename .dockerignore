@@ -57,11 +57,6 @@ USAGE_GUIDE.md
 cli/
 frontend/
 
-# CSV files - BUT allow the data CSV file we need for backend
-# Exclude all CSV files first
-*.csv
-GPT_Input_DB*.csv
-# Then explicitly allow the CSV file we need (must come AFTER exclusion)
-!backend/data/raw/
-!backend/data/raw/GPT_Input_DB*.csv
+# CSV files - Don't exclude CSV files since backend build context needs them
+# The backend/.dockerignore handles exclusions for the backend build
 

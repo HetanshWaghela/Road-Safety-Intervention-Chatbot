@@ -44,6 +44,5 @@ docs/
 
 # Note: NOT excluding *.sqlite or *.db to allow chroma_db files
 
-# Allow CSV file in data/raw (needed for app to generate JSON)
-!data/raw/*.csv
-!data/raw/GPT_Input_DB*.csv
+# IMPORTANT: Don't exclude CSV files - we need them for the app
+# The CSV file in data/raw/ is required for generating interventions.json
