@@ -272,16 +272,18 @@ def main():
         # Filters
         st.header("🔍 Filters")
 
-        # Initialize API client with session state values
+        # Initialize API client (but don't call API during init)
         api_client = APIClient(base_url=st.session_state.api_url, api_key=st.session_state.api_key)
 
-        # Get filter options
-        try:
-            categories = api_client.get_categories()
-            problems = api_client.get_problems()
-        except:
-            categories = ["Road Sign", "Road Marking", "Traffic Calming Measures"]
-            problems = ["Damaged", "Faded", "Missing"]
+        # Always use defaults - no API calls during initialization
+        if "categories" not in st.session_state:
+            st.session_state.categories = ["Road Sign", "Road Marking", "Traffic Calming Measures"]
+
+        if "problems" not in st.session_state:
+            st.session_state.problems = ["Damaged", "Faded", "Missing"]
+
+        categories = st.session_state.categories
+        problems = st.session_state.problems
 
         selected_categories = st.multiselect("Category", options=categories, default=[])
 
