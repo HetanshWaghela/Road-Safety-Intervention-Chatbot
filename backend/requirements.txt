@@ -53,8 +53,8 @@ pypdf==3.17.4
 # Charts & Visualizations
 plotly==5.18.0
 
-# Image Processing
-opencv-python-headless==4.9.0.80
+# Image Processing (using Pillow, not opencv)
+# opencv-python-headless removed - not used, was causing build timeouts
 
 # Data Export
 openpyxl==3.1.2

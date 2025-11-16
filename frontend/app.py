@@ -327,12 +327,14 @@ def main():
     # Main content
     st.header("🔍 Search for Road Safety Interventions")
 
-    # Quick examples
+    # Quick examples - based on actual database entries
     examples = [
-        "Faded STOP sign on 65 kmph highway",
-        "Missing road markings at pedestrian crossing",
-        "Damaged speed breaker on urban road",
-        "Obstruction blocking road sign visibility",
+        "Damaged STOP sign",
+        "Faded Hospital sign",
+        "Missing Emergency SOS Facility sign",
+        "Obstruction blocking Crash Prone Area Ahead sign",
+        "Height issue with Minimum Speed Limit sign",
+        "Improper placement of Gap in Median sign",
     ]
 
     example_choice = st.selectbox("Quick Examples (optional):", [""] + examples)
