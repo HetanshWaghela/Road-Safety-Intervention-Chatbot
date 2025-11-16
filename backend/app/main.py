@@ -134,7 +134,7 @@ async def startup_event():
         logger.info("Initializing cache...")
         cache_service = CacheService(maxsize=1000, ttl=settings.cache_ttl)
 
-        # Populate vector store if empty
+        # Populate vector store if empty (after database is loaded)
         if vector_store_empty and database_service.df is not None and len(database_service.df) > 0:
             logger.info("🔄 Vector store is empty. Generating embeddings and populating vector store...")
             try:

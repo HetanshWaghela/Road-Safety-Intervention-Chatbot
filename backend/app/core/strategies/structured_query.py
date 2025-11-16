@@ -54,10 +54,24 @@ class StructuredQueryStrategy(BaseStrategy):
             intervention_results = []
 
             for result in results:
+                # Normalize column names - handle 'S. No.' -> 's_no' mismatch
+                normalized_result = result.copy()
+                if 'S. No.' in normalized_result:
+                    normalized_result['s_no'] = int(normalized_result.pop('S. No.'))
+                elif 'S.No.' in normalized_result:
+                    normalized_result['s_no'] = int(normalized_result.pop('S.No.'))
+                elif 's_no' not in normalized_result:
+                    # Create s_no from index if missing
+                    normalized_result['s_no'] = normalized_result.get('id', '').split('_')[-1] if 'id' in normalized_result else 0
+                    try:
+                        normalized_result['s_no'] = int(normalized_result['s_no'])
+                    except:
+                        normalized_result['s_no'] = 0
+                
                 # Calculate confidence based on exact matches
-                confidence = self._calculate_confidence(query, result, filters)
+                confidence = self._calculate_confidence(query, normalized_result, filters)
 
-                intervention = Intervention(**result)
+                intervention = Intervention(**normalized_result)
 
                 intervention_results.append(
                     InterventionResult(

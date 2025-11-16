@@ -54,6 +54,16 @@ class DataProcessor:
 
         # Standardize column names
         df.columns = df.columns.str.strip()
+        
+        # Normalize 'S. No.' to 's_no' for consistency
+        if 'S. No.' in df.columns:
+            df = df.rename(columns={'S. No.': 's_no'})
+        elif 'S.No.' in df.columns:
+            df = df.rename(columns={'S.No.': 's_no'})
+        
+        # Ensure s_no exists, create from index if missing
+        if 's_no' not in df.columns:
+            df['s_no'] = df.index + 1
 
         # Remove completely empty rows
         df = df.dropna(how="all")
