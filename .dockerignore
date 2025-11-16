@@ -43,21 +43,24 @@ DEPLOYMENT*.md
 BACKEND_DEPLOYMENT.md
 USAGE_GUIDE.md
 
-# Data files (only include processed, not raw)
-backend/data/raw/
-backend/data/chroma_db/*.sqlite3
-backend/data/chroma_db/*.bin
+# Data files - allow processed and chroma_db
+# backend/data/raw/  # Exclude raw CSV
+# Keep chroma_db and processed data
 
 # Other
 .DS_Store
-*.db
-*.sqlite
+# Allow chroma_db files
+!backend/data/chroma_db/
+!backend/data/processed/
 
 # CLI and frontend (not needed for backend)
 cli/
 frontend/
 
-# CSV files
+# CSV files - BUT allow the data CSV file we need for backend
 *.csv
 GPT_Input_DB*.csv
+# Explicitly allow the CSV file we need for the backend (relative to root)
+!backend/data/raw/GPT_Input_DB*.csv
+!backend/data/raw/
 
