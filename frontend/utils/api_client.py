@@ -6,7 +6,8 @@ import time
 from datetime import datetime
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load environment variables (silently fail if .env doesn't exist)
+load_dotenv(verbose=False)
 
 
 class APIError(Exception):
@@ -35,8 +36,8 @@ class APIClient:
         self,
         base_url: Optional[str] = None,
         api_key: Optional[str] = None,
-        timeout: int = 30,
-        max_retries: int = 3,
+        timeout: int = 10,  # Reduced from 30 to prevent long waits during initialization
+        max_retries: int = 2,  # Reduced from 3 to fail faster
     ):
         """Initialize API client."""
         self.base_url = base_url or os.getenv("API_URL", "http://localhost:8000")

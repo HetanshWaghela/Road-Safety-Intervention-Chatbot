@@ -15,6 +15,11 @@ class GeminiService:
 
     def __init__(self):
         """Initialize Gemini service."""
+        if not settings.gemini_api_key:
+            raise ValueError(
+                "GEMINI_API_KEY is required but not set. "
+                "Please set the GEMINI_API_KEY environment variable."
+            )
         genai.configure(api_key=settings.gemini_api_key)
 
         self.flash_model = genai.GenerativeModel(settings.gemini_flash_model)

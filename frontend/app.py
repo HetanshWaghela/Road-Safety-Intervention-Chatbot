@@ -7,7 +7,8 @@ import time
 from datetime import datetime
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load environment variables (silently fail if .env doesn't exist)
+load_dotenv(verbose=False)
 
 # Page config
 st.set_page_config(
@@ -308,18 +309,39 @@ def main():
         # Max results
         max_results = st.slider("Max Results", min_value=1, max_value=10, value=5)
 
-        # Database stats
+        # Database stats - lazy loading to avoid blocking app startup
         with st.expander("📊 Database Statistics"):
-            try:
-                stats = api_client.get_stats()
-                st.metric("Total Interventions", stats["total_interventions"])
-
-                st.write("**Categories:**")
-                for cat, count in stats["categories"].items():
-                    st.write(f"- {cat}: {count}")
-
-            except Exception as e:
-                st.error(f"Could not load stats: {e}")
+            # Initialize stats in session state
+            if "stats_loaded" not in st.session_state:
+                st.session_state.stats_loaded = False
+            if "stats_data" not in st.session_state:
+                st.session_state.stats_data = None
+            
+            # Only load stats when user clicks the button
+            if not st.session_state.stats_loaded:
+                if st.button("🔄 Load Statistics", key="load_stats"):
+                    try:
+                        with st.spinner("Loading statistics..."):
+                            stats = api_client.get_stats()
+                            st.session_state.stats_data = stats
+                            st.session_state.stats_loaded = True
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"Could not load stats: {e}")
+                else:
+                    st.info("Click the button above to load database statistics.")
+            else:
+                # Display cached stats
+                if st.session_state.stats_data:
+                    stats = st.session_state.stats_data
+                    st.metric("Total Interventions", stats["total_interventions"])
+                    st.write("**Categories:**")
+                    for cat, count in stats["categories"].items():
+                        st.write(f"- {cat}: {count}")
+                    if st.button("🔄 Refresh Statistics", key="refresh_stats"):
+                        st.session_state.stats_loaded = False
+                        st.session_state.stats_data = None
+                        st.rerun()
 
     # Main content
     st.header("🔍 Search for Road Safety Interventions")

@@ -9,6 +9,13 @@ logger = logging.getLogger(__name__)
 async def verify_api_key(x_api_key: str = Header(..., description="API Key")):
     """Verify API key from header."""
     valid_keys = settings.api_keys_list
+    
+    if not valid_keys:
+        logger.error("No API keys configured. API_KEYS environment variable is required.")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="API authentication not configured. Please set API_KEYS environment variable.",
+        )
 
     if x_api_key not in valid_keys:
         logger.warning(f"Invalid API key attempted: {x_api_key[:10]}...")

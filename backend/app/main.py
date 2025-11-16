@@ -81,6 +81,8 @@ async def startup_event():
     logger.info("🚀 Starting Road Safety Intervention API with WOW Features...")
 
     try:
+        # Validate required settings first
+        settings.validate_required_settings()
         # Initialize services
         logger.info("Initializing Gemini service...")
         gemini_service = GeminiService()

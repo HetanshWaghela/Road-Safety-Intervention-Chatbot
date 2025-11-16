@@ -1,6 +1,7 @@
 """Application configuration."""
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List
+from pydantic import model_validator
+from typing import List, Optional, Any
 import os
 from pathlib import Path
 
@@ -14,13 +15,13 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
 
     # Google Gemini API
-    gemini_api_key: str
+    gemini_api_key: Optional[str] = None
     gemini_flash_model: str = "gemini-1.5-flash"
     gemini_pro_model: str = "gemini-1.5-pro"
     gemini_embedding_model: str = "text-embedding-004"
 
     # Authentication
-    api_keys: str  # Comma-separated API keys
+    api_keys: Optional[str] = None  # Comma-separated API keys
 
     # Environment
     environment: str = "development"
@@ -51,11 +52,37 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",  # Ignore extra fields in .env file
     )
+    
+    @model_validator(mode='before')
+    @classmethod
+    def set_defaults(cls, data: Any) -> Any:
+        """Set defaults for optional fields if they're missing."""
+        if isinstance(data, dict):
+            if 'gemini_api_key' not in data:
+                data['gemini_api_key'] = None
+            if 'api_keys' not in data:
+                data['api_keys'] = None
+        return data
 
     @property
     def api_keys_list(self) -> List[str]:
         """Parse API keys from comma-separated string."""
+        if not self.api_keys:
+            return []
         return [key.strip() for key in self.api_keys.split(",") if key.strip()]
+    
+    def validate_required_settings(self) -> None:
+        """Validate that required settings are present."""
+        errors = []
+        if not self.gemini_api_key:
+            errors.append("GEMINI_API_KEY environment variable is required")
+        if not self.api_keys:
+            errors.append("API_KEYS environment variable is required (comma-separated list)")
+        
+        if errors:
+            error_msg = "Missing required environment variables:\n" + "\n".join(f"  - {e}" for e in errors)
+            error_msg += "\n\nPlease set these in your environment or .env file."
+            raise ValueError(error_msg)
 
     @property
     def project_root(self) -> Path:
