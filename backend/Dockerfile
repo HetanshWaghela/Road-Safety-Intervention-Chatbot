@@ -38,9 +38,8 @@ RUN mkdir -p ./data/raw ./data/processed ./data/chroma_db ./scripts
 COPY app/ ./app/
 
 # Copy data files
-# Note: chroma_db files are gitignored, so vector store will be empty initially
-# The app will work with structured search (which we already handle gracefully)
-COPY data/processed/ ./data/processed/
+# Copy interventions.json specifically (it's now in git)
+COPY data/processed/interventions.json ./data/processed/interventions.json
 # chroma_db directory already created above with RUN mkdir -p
 # Vector store will be empty but app handles this - it falls back to structured search
 
