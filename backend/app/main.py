@@ -2,6 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
+import pandas as pd
 
 from .config import settings
 from .utils.logger import setup_logging, get_logger
@@ -92,15 +93,18 @@ async def startup_event():
             persist_directory=str(settings.chroma_dir), collection_name=settings.collection_name
         )
         # Get or create collection
+        vector_store_empty = False
         try:
             collection = vector_store_service.get_collection()
             count = vector_store_service.count()
             logger.info(f"Vector store loaded with {count} documents")
             if count == 0:
-                logger.warning("⚠️ Vector store is empty! Please run: python backend/scripts/setup_database.py")
+                vector_store_empty = True
+                logger.warning("⚠️ Vector store is empty! Will generate embeddings during startup...")
         except Exception as e:
             logger.error(f"Error loading vector store: {e}")
-            logger.warning("⚠️ Vector store may not be initialized. Please run: python backend/scripts/setup_database.py")
+            vector_store_empty = True
+            logger.warning("⚠️ Vector store may not be initialized. Will create during startup...")
 
         logger.info("Initializing database...")
         data_path = settings.processed_data_dir / "interventions.json"
@@ -129,6 +133,75 @@ async def startup_event():
 
         logger.info("Initializing cache...")
         cache_service = CacheService(maxsize=1000, ttl=settings.cache_ttl)
+
+        # Populate vector store if empty
+        if vector_store_empty and database_service.df is not None and len(database_service.df) > 0:
+            logger.info("🔄 Vector store is empty. Generating embeddings and populating vector store...")
+            try:
+                # Prepare documents from database
+                documents = []
+                metadatas = []
+                ids = []
+                
+                for _, row in database_service.df.iterrows():
+                    # Create document text
+                    doc_text = row.get("search_text", "")
+                    if not doc_text or (isinstance(doc_text, float) and pd.isna(doc_text)):
+                        doc_text = f"{row.get('problem', '')} {row.get('category', '')} {row.get('type', '')} {row.get('data', '')}"
+                    
+                    documents.append(str(doc_text))
+                    
+                    # Create metadata (ChromaDB only supports simple types)
+                    metadata = {
+                        "id": str(row.get("id", "")),
+                        "s_no": int(row.get("s_no", 0)) if pd.notna(row.get("s_no", 0)) else 0,
+                        "problem": str(row.get("problem", "")),
+                        "category": str(row.get("category", "")),
+                        "type": str(row.get("type", "")),
+                        "code": str(row.get("code", "")),
+                        "clause": str(row.get("clause", "")),
+                        "data": str(row.get("data", ""))[:500],  # Truncate for metadata
+                    }
+                    
+                    # Add optional fields if available
+                    if "speed_min" in row and pd.notna(row.get("speed_min")):
+                        metadata["speed_min"] = int(row["speed_min"])
+                    if "speed_max" in row and pd.notna(row.get("speed_max")):
+                        metadata["speed_max"] = int(row["speed_max"])
+                    if "priority" in row and pd.notna(row.get("priority")):
+                        metadata["priority"] = str(row["priority"])
+                    
+                    metadatas.append(metadata)
+                    ids.append(str(row.get("id", "")))
+                
+                logger.info(f"Prepared {len(documents)} documents for embedding generation")
+                
+                # Generate embeddings in batches
+                logger.info("Generating embeddings with Gemini API (this may take 2-3 minutes)...")
+                embeddings = await gemini_service.generate_embeddings(documents)
+                
+                logger.info(f"✅ Generated {len(embeddings)} embeddings")
+                
+                # Ensure collection exists
+                if vector_store_service.collection is None:
+                    vector_store_service.create_collection()
+                
+                # Add documents to vector store
+                vector_store_service.add_documents(
+                    documents=documents,
+                    embeddings=embeddings,
+                    metadatas=metadatas,
+                    ids=ids
+                )
+                
+                final_count = vector_store_service.count()
+                logger.info(f"✅ Vector store populated with {final_count} documents!")
+                
+            except Exception as e:
+                logger.error(f"❌ Failed to populate vector store: {e}")
+                logger.warning("⚠️ Continuing without vector store. RAG search will not work, but structured search will.")
+                import traceback
+                logger.error(traceback.format_exc())
 
         # Initialize search strategies
         logger.info("Initializing search strategies...")
