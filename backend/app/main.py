@@ -199,9 +199,11 @@ async def startup_event():
                 
             except Exception as e:
                 logger.error(f"❌ Failed to populate vector store: {e}")
-                logger.warning("⚠️ Continuing without vector store. RAG search will not work, but structured search will.")
+                logger.error(f"Error type: {type(e).__name__}")
+                logger.error(f"Error details: {str(e)}")
                 import traceback
-                logger.error(traceback.format_exc())
+                logger.error(f"Full traceback:\n{traceback.format_exc()}")
+                logger.warning("⚠️ Continuing without vector store. RAG search will not work, but structured search will.")
 
         # Initialize search strategies
         logger.info("Initializing search strategies...")

@@ -36,30 +36,54 @@ class GeminiService:
         """Generate embeddings for texts using Gemini Embedding API."""
         try:
             embeddings = []
+            import asyncio
 
             # Process in batches of 20 (API limit)
             batch_size = 20
             for i in range(0, len(texts), batch_size):
                 batch = texts[i : i + batch_size]
+                logger.info(f"Processing embedding batch {i//batch_size + 1}/{(len(texts) + batch_size - 1)//batch_size} ({len(batch)} documents)")
 
                 batch_embeddings = []
-                for text in batch:
-                    result = genai.embed_content(
-                        model=f"models/{settings.gemini_embedding_model}",
-                        content=text,
-                        task_type="retrieval_document",
-                    )
-                    batch_embeddings.append(result["embedding"])
+                for idx, text in enumerate(batch):
+                    try:
+                        # Truncate very long texts (embedding API has limits)
+                        if len(text) > 10000:
+                            text = text[:10000]
+                            logger.warning(f"Truncated text to 10000 characters for embedding")
+                        
+                        result = genai.embed_content(
+                            model=f"models/{settings.gemini_embedding_model}",
+                            content=text,
+                            task_type="retrieval_document",
+                        )
+                        batch_embeddings.append(result["embedding"])
+                        
+                        # Small delay to avoid rate limiting
+                        if idx < len(batch) - 1:
+                            await asyncio.sleep(0.1)
+                            
+                    except Exception as e:
+                        logger.error(f"Error generating embedding for document {idx} in batch: {str(e)}")
+                        logger.error(f"Error type: {type(e).__name__}")
+                        # Skip this document rather than adding placeholder
+                        # This will cause a mismatch, so we need to handle it
+                        raise  # Re-raise to stop the process
 
                 embeddings.extend(batch_embeddings)
-
-                logger.debug("Generated embeddings batch", operation="embedding_generation", batch_size=len(batch_embeddings))
+                
+                # Delay between batches to avoid rate limiting
+                if i + batch_size < len(texts):
+                    await asyncio.sleep(0.5)
+                    logger.debug(f"Generated embeddings batch {i//batch_size + 1}", operation="embedding_generation", batch_size=len(batch_embeddings))
 
             logger.log_operation("embedding_generation", f"Generated {len(embeddings)} total embeddings", total_embeddings=len(embeddings))
             return embeddings
 
         except Exception as e:
-            logger.error("Error generating embeddings", operation="embedding_error", error=str(e), error_type=type(e).__name__)
+            logger.error(f"Error generating embeddings: {str(e)}", operation="embedding_error", error=str(e), error_type=type(e).__name__)
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             raise
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
