@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
-COPY backend/requirements.txt .
+COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --user -r requirements.txt
@@ -32,9 +32,9 @@ COPY --from=builder /root/.local /root/.local
 ENV PATH=/root/.local/bin:$PATH
 
 # Copy only necessary application files
-COPY backend/app/ ./app/
-COPY backend/data/processed/interventions.json ./data/processed/interventions.json
-COPY backend/data/chroma_db/ ./data/chroma_db/
+COPY app/ ./app/
+COPY data/processed/interventions.json ./data/processed/interventions.json
+COPY data/chroma_db/ ./data/chroma_db/
 
 # Create necessary directories
 RUN mkdir -p ./data/raw ./data/processed ./scripts
